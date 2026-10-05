@@ -5,7 +5,7 @@ from .move import Move
 from .state import GameState
 from .status import is_checkmate, is_stalemate
 from .types import Color, PieceType, Square
-
+from .notation import move_to_string, parse_move
 
 PIECE_SYMBOLS = {
     (Color.WHITE, PieceType.PAWN): "P",
@@ -48,49 +48,6 @@ def parse_square(value: str) -> Square:
 
     return Square(rank_index * 8 + file_index)
 
-
-def parse_move(value: str, state: GameState) -> Move:
-    value = value.strip().lower()
-
-    if len(value) not in (4, 5):
-        raise ValueError(
-            "Move must use UCI notation, for example e2e4 or e7e8q."
-        )
-
-    from_square = parse_square(value[:2])
-    to_square = parse_square(value[2:4])
-
-    promotion = None
-    if len(value) == 5:
-        try:
-            promotion = PROMOTION_PIECES[value[4]]
-        except KeyError as exc:
-            raise ValueError(f"Invalid promotion piece: {value[4]}") from exc
-
-    for move in generate_legal_moves(state):
-        if (
-            move.from_square == from_square
-            and move.to_square == to_square
-            and move.promotion == promotion
-        ):
-            return move
-
-    raise ValueError(f"Illegal move: {value}")
-
-
-def move_to_string(move: Move) -> str:
-    result = square_to_string(move.from_square) + square_to_string(move.to_square)
-
-    if move.promotion is not None:
-        promotion_names = {
-            PieceType.QUEEN: "q",
-            PieceType.ROOK: "r",
-            PieceType.BISHOP: "b",
-            PieceType.KNIGHT: "n",
-        }
-        result += promotion_names[move.promotion]
-
-    return result
 
 
 def print_board(state: GameState) -> None:
