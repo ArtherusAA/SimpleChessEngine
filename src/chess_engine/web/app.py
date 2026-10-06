@@ -139,18 +139,25 @@ def make_move(request: MoveRequest) -> dict:
     human_move = move_to_string(move)
     game.state = game.state.make_move(move)
 
+    return serialize_state(human_move=human_move)
+
+@app.post("/api/bot-move")
+def make_bot_move() -> dict:
     if game.status() in {"checkmate", "stalemate"}:
-        return serialize_state(human_move=human_move)
+        return serialize_state()
+
+    if game.state.turn != game.bot.color:
+        raise HTTPException(
+            status_code=400,
+            detail="It is not the bot's turn.",
+        )
 
     bot_move = game.bot.choose_move(game.state)
 
     if bot_move is None:
-        return serialize_state(human_move=human_move)
+        return serialize_state()
 
     bot_move_string = move_to_string(bot_move)
     game.state = game.state.make_move(bot_move)
 
-    return serialize_state(
-        human_move=human_move,
-        bot_move=bot_move_string,
-    )
+    return serialize_state(bot_move=bot_move_string)

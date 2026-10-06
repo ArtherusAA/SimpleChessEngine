@@ -139,7 +139,7 @@ function handleSquareClick(square) {
 
 async function sendMove(move) {
     try {
-        statusElement.textContent = "Thinking...";
+        statusElement.textContent = "Your move";
 
         const response = await fetch("/api/move", {
             method: "POST",
@@ -155,7 +155,32 @@ async function sendMove(move) {
             throw new Error(data.detail || "Move failed.");
         }
 
+        // Immediately show the human move.
         gameState = data;
+        render();
+
+        // If the game ended with the human move, don't ask the bot to move.
+        if (
+            gameState.status === "checkmate" ||
+            gameState.status === "stalemate"
+        ) {
+            return;
+        }
+
+        // Now let the bot think.
+        statusElement.textContent = "Bot is thinking...";
+
+        const botResponse = await fetch("/api/bot-move", {
+            method: "POST",
+        });
+
+        const botData = await botResponse.json();
+
+        if (!botResponse.ok) {
+            throw new Error(botData.detail || "Bot move failed.");
+        }
+
+        gameState = botData;
         render();
     } catch (error) {
         statusElement.textContent = error.message;
