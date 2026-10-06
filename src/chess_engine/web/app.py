@@ -12,7 +12,8 @@ from ..notation import move_to_string, parse_move, square_to_string
 from ..state import GameState
 from ..status import is_checkmate, is_stalemate
 from ..types import Color, PieceType, Square
-
+from ..evaluate import evaluate, PIECE_VALUES
+from ..move import Move
 
 BASE_DIR = Path(__file__).parent
 
@@ -49,9 +50,13 @@ class ChessGame:
     def __init__(self) -> None:
         self.state = GameState.initial()
         self.bot = ChessBot(Color.BLACK, depth=2)
+        self.captured_white: list[PieceType] = []
+        self.captured_black: list[PieceType] = []
 
     def reset(self) -> None:
         self.state = GameState.initial()
+        self.captured_white = []
+        self.captured_black = []
 
     def status(self) -> str:
         if is_checkmate(self.state):
@@ -65,6 +70,50 @@ class ChessGame:
 
         return "ongoing"
 
+    def make_move(self, move: Move) -> None:
+        captured_piece = self._captured_piece(move)
+
+        if captured_piece is not None:
+            captured_color, captured_type = captured_piece
+
+            if captured_color == Color.WHITE:
+                self.captured_white.append(captured_type)
+            else:
+                self.captured_black.append(captured_type)
+
+        self.state = self.state.make_move(move)
+
+    def _captured_piece(
+        self,
+        move: Move,
+    ) -> tuple[Color, PieceType] | None:
+        if move.is_en_passant:
+            captured_square = (
+                Square(move.to_square - 8)
+                if self.state.turn == Color.WHITE
+                else Square(move.to_square + 8)
+            )
+            return self.state.piece_at(captured_square)
+
+        return self.state.piece_at(move.to_square)
+
+def material_value(state: GameState, color: Color) -> int:
+    if color == Color.WHITE:
+        return (
+            state.white_pawns.bit_count() * PIECE_VALUES[PieceType.PAWN]
+            + state.white_knights.bit_count() * PIECE_VALUES[PieceType.KNIGHT]
+            + state.white_bishops.bit_count() * PIECE_VALUES[PieceType.BISHOP]
+            + state.white_rooks.bit_count() * PIECE_VALUES[PieceType.ROOK]
+            + state.white_queens.bit_count() * PIECE_VALUES[PieceType.QUEEN]
+        )
+
+    return (
+        state.black_pawns.bit_count() * PIECE_VALUES[PieceType.PAWN]
+        + state.black_knights.bit_count() * PIECE_VALUES[PieceType.KNIGHT]
+        + state.black_bishops.bit_count() * PIECE_VALUES[PieceType.BISHOP]
+        + state.black_rooks.bit_count() * PIECE_VALUES[PieceType.ROOK]
+        + state.black_queens.bit_count() * PIECE_VALUES[PieceType.QUEEN]
+    )
 
 game = ChessGame()
 
@@ -97,6 +146,9 @@ def serialize_state(
         for move in generate_legal_moves(game.state)
     ]
 
+    white_material = material_value(game.state, Color.WHITE)
+    black_material = material_value(game.state, Color.BLACK)
+
     return {
         "pieces": pieces,
         "turn": game.state.turn.name.lower(),
@@ -104,6 +156,19 @@ def serialize_state(
         "legal_moves": legal_moves,
         "human_move": human_move,
         "bot_move": bot_move,
+
+        "evaluation": evaluate(game.state),
+        "white_material": white_material,
+        "black_material": black_material,
+
+        "captured_white": [
+            PIECE_SYMBOLS[(Color.WHITE, piece_type)]
+            for piece_type in game.captured_white
+        ],
+        "captured_black": [
+            PIECE_SYMBOLS[(Color.BLACK, piece_type)]
+            for piece_type in game.captured_black
+        ],
     }
 
 
@@ -137,7 +202,7 @@ def make_move(request: MoveRequest) -> dict:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     human_move = move_to_string(move)
-    game.state = game.state.make_move(move)
+    game.make_move(move)
 
     return serialize_state(human_move=human_move)
 
@@ -158,6 +223,6 @@ def make_bot_move() -> dict:
         return serialize_state()
 
     bot_move_string = move_to_string(bot_move)
-    game.state = game.state.make_move(bot_move)
+    game.make_move(bot_move)
 
     return serialize_state(bot_move=bot_move_string)

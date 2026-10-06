@@ -93,3 +93,24 @@ button {
     margin-top: 16px;
     min-height: 24px;
 }
+
+#game-info {
+    width: min(95vw, 600px);
+    margin-top: 16px;
+}
+
+#captured,
+#material,
+#evaluation-container {
+    margin-top: 8px;
+}
+
+#captured-white,
+#captured-black {
+    font-size: 24px;
+    letter-spacing: 2px;
+}
+
+#evaluation-container {
+    margin-top: 16px;
+}

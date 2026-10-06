@@ -2,10 +2,50 @@ const board = document.getElementById("board");
 const statusElement = document.getElementById("status");
 const movesElement = document.getElementById("moves");
 const newGameButton = document.getElementById("new-game");
+const capturedWhiteElement = document.getElementById("captured-white");
+const capturedBlackElement = document.getElementById("captured-black");
+const materialAdvantageElement =
+    document.getElementById("material-advantage");
+const evaluationElement = document.getElementById("evaluation");
+const showEvaluationCheckbox =
+    document.getElementById("show-evaluation");
 
 let gameState = null;
 let selectedSquare = null;
 
+function renderGameInfo() {
+    capturedWhiteElement.textContent =
+        gameState.captured_white.join(" ") || "—";
+
+    capturedBlackElement.textContent =
+        gameState.captured_black.join(" ") || "—";
+
+    const materialDifference =
+        gameState.white_material - gameState.black_material;
+
+    if (materialDifference === 0) {
+        materialAdvantageElement.textContent = "Equal";
+    } else if (materialDifference > 0) {
+        materialAdvantageElement.textContent =
+            `White +${materialDifference}`;
+    } else {
+        materialAdvantageElement.textContent =
+            `Black +${Math.abs(materialDifference)}`;
+    }
+
+    const evaluation = gameState.evaluation;
+
+    if (evaluation >= 1_000_000) {
+        evaluationElement.textContent = "White is winning by checkmate";
+    } else if (evaluation <= -1_000_000) {
+        evaluationElement.textContent = "Black is winning by checkmate";
+    } else {
+        evaluationElement.textContent =
+            `${evaluation >= 0 ? "+" : ""}${(evaluation / 100).toFixed(2)}`;
+    }
+
+    evaluationElement.hidden = !showEvaluationCheckbox.checked;
+}
 
 function createBoard() {
     board.innerHTML = "";
@@ -74,6 +114,7 @@ function render() {
 
         movesElement.textContent = parts.join("    ");
     }
+    renderGameInfo();
 }
 
 

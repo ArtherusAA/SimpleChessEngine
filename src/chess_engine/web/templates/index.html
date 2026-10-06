@@ -14,6 +14,32 @@
 
     <div id="board"></div>
 
+    <div id="game-info">
+        <div id="captured">
+            <div>
+                <strong>White captured:</strong>
+                <span id="captured-white"></span>
+            </div>
+            <div>
+                <strong>Black captured:</strong>
+                <span id="captured-black"></span>
+            </div>
+        </div>
+
+        <div id="material">
+            <strong>Material advantage:</strong>
+            <span id="material-advantage">Equal</span>
+        </div>
+
+        <div id="evaluation-container">
+            <label>
+                <input type="checkbox" id="show-evaluation">
+                Show evaluation
+            </label>
+            <span id="evaluation" hidden></span>
+        </div>
+    </div>
+
     <div class="controls">
         <button id="new-game">New Game</button>
     </div>
